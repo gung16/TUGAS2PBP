@@ -20,7 +20,7 @@ class Product(models.Model):
     # Add ons
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     rating = models.FloatField(default=0.0)  # rating produk
-    weight = models.IntegerField()  # berat produk (kg atau gram)
+    weight = models.IntegerField(default=0)  # berat produk (kg atau gram)
     brand = models.CharField(max_length=100)  # merek produk
     product_views = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
