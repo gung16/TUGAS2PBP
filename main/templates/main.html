@@ -1,45 +1,51 @@
 {% extends 'base.html' %}
 {% block content %}
-<h1>Gung's Padel Shop</h1>
-
-<h5>Name: </h5>
-<p>{{ name }}<p>
-<h5>NPM: </h5>
-<p>{{ npm }}</p>
-<h5>Class: </h5>
-<p>{{ class }}</p>
-
-<a href="{% url 'main:create_product' %}">
-    <button>+ Add Product</button>
-  </a>
-  
-  <hr>
-  
-  {% if not product_list %}
-  <p>Belum ada product Padel yang di list.</p>
-  {% else %}
-  
-  {% for product in product_list %}
-  <div>
-    <h2><a href="{% url 'main:show_product' product.id %}">{{ product.title }}</a></h2>
-  
-    <p><b>{{ product.get_category_display }}</b>{% if product.is_featured %} | 
-      <b>Featured</b>{% endif %}{% if product.is_product_hot %} | 
-      <b>Hot</b>{% endif %} | <i>{{ product.created_at|date:"d M Y H:i" }}</i> 
-      | Views: {{ product.product_views }}</p>
-  
-    {% if product.thumbnail %}
-    <img src="{{ product.thumbnail }}" alt="thumbnail" width="150" height="100">
-    <br />
-    {% endif %}
-  
-    <p>{{ product.description|truncatewords:25 }}...</p>
-  
-    <p><a href="{% url 'main:show_product' product.id %}"><button>Read More</button></a></p>
+<div class="stack" style="margin-bottom: 12px;">
+  <div class="kicker">Profile</div>
+  <div class="card">
+    <div class="row">
+      <div>
+        <div class="title">Gung's Padel Shop</div>
+        <div class="subtitle">Made by: {{ name }} · {{ npm }} · {{ class }}</div>
+      </div>
+      <a class="btn primary" href="{% url 'main:create_product' %}">+ Add Product</a>
+    </div>
   </div>
-  
-  <hr>
-  {% endfor %}
-  
-  {% endif %}
+</div>
+
+{% if not product_list %}
+  <div class="card">Belum ada product Padel yang di list.</div>
+{% else %}
+  <div class="grid cols-3">
+    {% for product in product_list %}
+      <div class="card stack">
+        {% if product.thumbnail %}
+          <a href="{% url 'main:show_product' product.id %}">
+            <img class="thumb" src="{{ product.thumbnail }}" alt="{{ product.name }} thumbnail">
+          </a>
+        {% endif %}
+        <div class="row">
+          <a href="{% url 'main:show_product' product.id %}"><h2 style="margin:0;">{{ product.name }}</h2></a>
+          <span class="pill">{{ product.get_category_display }}</span>
+        </div>
+        <div class="row muted">
+          <span>Brand: {{ product.brand }}</span>
+          <span>Weight: {{ product.weight }}</span>
+        </div>
+        <div class="row">
+          <span class="price">Rp {{ product.price|floatformat:0 }}</span>
+          <span class="rating">★ {{ product.rating|default:0|floatformat:1 }}</span>
+        </div>
+        <p class="muted">{{ product.description|truncatewords:20 }}</p>
+        <div class="row muted" style="font-size: 12px;">
+          <span>{% if product.is_featured %}Featured · {% endif %}{% if product.is_product_hot %}Hot · {% endif %}{{ product.created_at|date:"d M Y H:i" }}</span>
+          <span>Views: {{ product.product_views }}</span>
+        </div>
+        <div class="row">
+          <a class="btn" href="{% url 'main:show_product' product.id %}">View Details</a>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
 {% endblock content %}

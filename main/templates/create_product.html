@@ -1,18 +1,19 @@
 {% extends 'base.html' %} 
 {% block content %}
-<h1>Add Product</h1>
-
-<form method="POST">
-  {% csrf_token %}
-  <table>
-    {{ form.as_table }}
-    <tr>
-      <td></td>
-      <td>
-        <input type="submit" value="Add PRODUCT" />
-      </td>
-    </tr>
-  </table>
-</form>
-
+<div class="stack">
+  <div class="title">Add Product</div>
+  <div class="card">
+    <form method="POST" class="stack">
+      {% csrf_token %}
+      <div class="table-like">
+        <table>
+          {{ form.as_table }}
+        </table>
+      </div>
+      <div>
+        <button class="btn primary" type="submit">Add PRODUCT</button>
+      </div>
+    </form>
+  </div>
+</div>
 {% endblock %}

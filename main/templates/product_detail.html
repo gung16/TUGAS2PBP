@@ -1,18 +1,43 @@
 {% extends 'base.html' %}
 {% block content %}
-<p><a href="{% url 'main:show_main' %}"><button>← View other products</button></a></p>
-
-<h1>{{ product.title }}</h1>
-<p><b>{{ product.get_category_display }}</b>{% if product.is_featured %} | 
-    <b>Featured</b>{% endif %}{% if product.is_product_hot %} | 
-    <b>Hot</b>{% endif %} | <i>{{ product.created_at|date:"d M Y, H:i" }}</i> 
-    | Views: {{ product.product_views }}</p>
-
-{% if product.thumbnail %}
-<img src="{{ product.thumbnail }}" alt="Product thumbnail" width="300">
-<br /><br />
-{% endif %}
-
-<p>{{ product.description }}</p>
-
+<div class="stack">
+  <a class="btn" href="{% url 'main:show_main' %}">← View other products</a>
+  <div class="grid" style="grid-template-columns: 1.2fr 1fr; gap: 20px;">
+    <div class="card stack">
+      {% if product.thumbnail %}
+        <img class="thumb" src="{{ product.thumbnail }}" alt="{{ product.name }} thumbnail" style="aspect-ratio: 16/10;">
+      {% endif %}
+      <div class="row">
+        <h1 style="margin:0;">{{ product.name }}</h1>
+        <span class="pill">{{ product.get_category_display }}</span>
+      </div>
+      <div class="row muted">
+        <span>Brand: {{ product.brand }}</span>
+        <span>Weight: {{ product.weight }}</span>
+      </div>
+      <div class="row">
+        <span class="price">Rp {{ product.price|floatformat:0 }}</span>
+        <span class="rating">★ {{ product.rating|default:0|floatformat:1 }}</span>
+      </div>
+      <p>{{ product.description }}</p>
+      <div class="row muted" style="font-size: 12px;">
+        <span>{% if product.is_featured %}Featured · {% endif %}{% if product.is_product_hot %}Hot · {% endif %}{{ product.created_at|date:"d M Y H:i" }}</span>
+        <span>Views: {{ product.product_views }}</span>
+      </div>
+    </div>
+    <div class="card stack">
+      <h3 style="margin:0 0 4px;">Rate this product</h3>
+      <form method="post">
+        {% csrf_token %}
+        <div class="form-row">
+          <label for="rating" class="muted">Your rating (0.0 - 5.0)</label>
+          <input class="input" type="number" id="rating" name="rating" min="0" max="5" step="0.1" value="{{ product.rating|default:0|floatformat:1 }}" required>
+        </div>
+        <div class="spacer"></div>
+        <button class="btn primary" type="submit">Submit Rating</button>
+      </form>
+      <div class="muted" style="font-size: 12px;">Current average: ★ {{ product.rating|default:0|floatformat:1 }}</div>
+    </div>
+  </div>
+</div>
 {% endblock content %}

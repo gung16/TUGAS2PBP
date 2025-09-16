@@ -28,6 +28,19 @@ def create_product(request):
 
 def show_product(request, id):
     product = get_object_or_404(Product, pk=id)
+    if request.method == "POST":
+        rating_value = request.POST.get("rating")
+        try:
+            rating_float = float(rating_value)
+            if rating_float < 0:
+                rating_float = 0.0
+            if rating_float > 5:
+                rating_float = 5.0
+            product.rating = rating_float
+            product.save()
+            return redirect('main:show_product', id=product.id)
+        except (TypeError, ValueError):
+            pass
     product.increment_views()
 
     context = {
