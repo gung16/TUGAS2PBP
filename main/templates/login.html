@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block header %}{% endblock header %}
+
+{% block meta %}
+<title>Login</title>
+{% endblock meta %}
+
+{% block content %}
+<div class="container" style="display:grid; place-items:center; min-height:70vh;">
+  <div class="card" style="width:min(420px, 100%);">
+    <div class="stack">
+      <h1 style="margin:0;">Login</h1>
+      <form method="POST" action="" class="stack">
+        {% csrf_token %}
+        <div class="table-like"><table>{{ form.as_table }}</table></div>
+        <button class="btn primary" type="submit">Login</button>
+      </form>
+      {% if messages %}
+      <ul class="muted" style="margin:0;">
+        {% for message in messages %}<li>{{ message }}</li>{% endfor %}
+      </ul>
+      {% endif %}
+      <div class="muted">Belum punya akun? <a href="{% url 'main:register' %}">Daftar</a></div>
+    </div>
+  </div>
+  </div>
+
+{% endblock content %}

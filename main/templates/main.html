@@ -7,14 +7,32 @@
       <div>
         <div class="title">Gung's Padel Shop</div>
         <div class="subtitle">Made by: {{ name }} · {{ npm }} · {{ class }}</div>
+        {% if last_login %}
+        <div class="muted" style="margin-top:6px;">Last login: {{ last_login }}</div>
+        {% endif %}
       </div>
-      <a class="btn primary" href="{% url 'main:create_product' %}">+ Add Product</a>
+      <div style="display: flex; gap: 8px;">
+        <a class="btn primary" href="{% url 'main:create_product' %}">+ Add Product</a>
+        <a class="btn" href="{% url 'main:logout' %}" style="color: #ef4444;">Logout</a>
+      </div>
     </div>
   </div>
 </div>
 
+{% with f=request.GET.filter|default:'all' %}
+<div class="row" style="margin-bottom:12px; gap:8px; flex-wrap:wrap; justify-content:space-between;">
+  <div style="display:flex; gap:8px;">
+    <a class="pill {% if f == 'all' %}active{% endif %}" href="?filter=all">All Products</a>
+    <a class="pill {% if f == 'my' %}active{% endif %}" href="?filter=my">My Products</a>
+  </div>
+  {% if request.user.is_authenticated %}
+    <span class="muted">· Logged in as {{ request.user.username }}</span>
+  {% endif %}
+</div>
+{% endwith %}
+
 {% if not product_list %}
-  <div class="card">Belum ada product Padel yang di list.</div>
+  <div class="card">No products to display.</div>
 {% else %}
   <div class="grid cols-3">
     {% for product in product_list %}
@@ -36,6 +54,7 @@
           <span class="price">Rp {{ product.price|floatformat:0 }}</span>
           <span class="rating">★ {{ product.rating|default:0|floatformat:1 }}</span>
         </div>
+        <div class="muted" style="font-size: 13px;">By: {% if product.user %}{{ product.user.username }}{% else %}Anonymous{% endif %}</div>
         <p class="muted">{{ product.description|truncatewords:20 }}</p>
         <div class="row muted" style="font-size: 12px;">
           <span>{% if product.is_featured %}Featured · {% endif %}{% if product.is_product_hot %}Hot · {% endif %}{{ product.created_at|date:"d M Y H:i" }}</span>

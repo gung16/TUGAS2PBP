@@ -20,11 +20,13 @@
         <span class="rating">★ {{ product.rating|default:0|floatformat:1 }}</span>
       </div>
       <p>{{ product.description }}</p>
+      <div class="muted" style="font-size: 13px;">By: {% if product.user %}{{ product.user.username }}{% else %}Anonymous{% endif %}</div>
       <div class="row muted" style="font-size: 12px;">
         <span>{% if product.is_featured %}Featured · {% endif %}{% if product.is_product_hot %}Hot · {% endif %}{{ product.created_at|date:"d M Y H:i" }}</span>
         <span>Views: {{ product.product_views }}</span>
       </div>
     </div>
+
     <div class="card stack">
       <h3 style="margin:0 0 4px;">Rate this product</h3>
       <form method="post">

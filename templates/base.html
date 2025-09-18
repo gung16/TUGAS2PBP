@@ -72,6 +72,8 @@
     .thumb { width: 100%; aspect-ratio: 16/10; object-fit: cover; border-radius: 12px; border: 1px solid rgba(148,163,184,0.15); }
     .muted { color: var(--muted); font-size: 14px; }
     .pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; border: 1px solid rgba(148,163,184,0.25); font-size: 12px; color: var(--muted); }
+    .pill:hover { border-color: rgba(148,163,184,0.45); color: var(--text); }
+    .pill.active { background: rgba(56,189,248,0.12); color: var(--text); border-color: rgba(56,189,248,0.5); }
     .price { font-weight: 800; font-size: 20px; letter-spacing: 0.3px; }
     .rating { color: #fbbf24; font-weight: 700; }
     .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
@@ -95,6 +97,7 @@
 </head>
 
 <body>
+    {% block header %}
     <header>
         <nav class="nav">
             <div class="brand">
@@ -107,6 +110,7 @@
             </div>
         </nav>
     </header>
+    {% endblock header %}
     <main class="container page">
         {% block content %} {% endblock content %}
     </main>

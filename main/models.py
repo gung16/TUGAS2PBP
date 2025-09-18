@@ -1,6 +1,9 @@
 import uuid
 from django.db import models
 
+# Tugas 4
+from django.contrib.auth.models import User
+
 class Product(models.Model):
     CATEGORY_CHOICES = [
         ('racket', 'Racket'),
@@ -24,6 +27,10 @@ class Product(models.Model):
     brand = models.CharField(max_length=100)  # merek produk
     product_views = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    # Tugas 4
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True) # tambahkan ini
+
     
     def __str__(self):
         return self.name
