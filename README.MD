@@ -1,60 +1,27 @@
-1. Jelaskan mengapa kita memerlukan data delivery dalam pengimplementasian sebuah platform?  
+ 1. Apa itu Django AuthenticationForm? Jelaskan juga kelebihan dan kekurangannya.
 
-Data delivery adalah proses mengirim, menerima, dan menyajikan data dari satu komponen ke komponen lain (server ke client dan sebaliknya, antar users, dsb.) secara cepat, aman, dan reliabel. Kita membutuhkannya karena:  
+Menurut saya, AuthenticationForm adalah form bawaan dari Django yang ada di django.contrib.auth.forms dan memang dipakai untuk menangani login. Fungsinya adalah mengecek apakah username yang dimasukkan ada di database, lalu memastikan password yang diberikan sesuai dengan user tersebut. Kalau cocok, maka user dianggap sudah tervalidasi dan bisa login. Kelebihan dari form ini adalah saya tidak perlu repot menulis validasi manual, karena Django sudah menyiapkan logikanya. Selain itu, AuthenticationForm sudah terintegrasi dengan sistem autentikasi Django, jadi bisa langsung dipakai bersama view login tanpa konfigurasi yang rumit. Form ini juga cukup mudah untuk diubah atau dikustomisasi sesuai kebutuhan. Kekurangannya, form ini hanya mendukung login berbasis username dan password secara default, jadi kalau aplikasi saya butuh login pakai email atau OTP, tetap harus saya modifikasi lagi. Dari sisi fleksibilitas untuk tampilan modern, kadang juga agak terbatas.
 
-- Tanpa pengantaran data yang baik, pengguna tidak dapat melihat konten, produk, atau hasil proses secara real-time.  
-- Kami butuh konsistensi dan perlu menjaga agar data yang tampil di UI sama dengan state pada server (contoh: transaksi, stok, status pesanan).  
-- Kita juga perlukan untuk kinerja dan efisiensi sistem seperti caching, cdn, dan protokol yang efisien, waktu muat menjadi cepat dan pengalaman pengguna meningkat.  
-- Terakhir, juga untuk keamanan seperti data sensitif (akun, pembayaran) perlu dikirim dengan enkripsi dan otentikasi agar tidak disadap atau dimanipulasi.  
+ ---
 
----
+ 2. Apa perbedaan antara autentikasi dan otorisasi? Bagaiamana Django mengimplementasikan kedua konsep tersebut?
 
-2. Menurutmu, mana yang lebih baik antara XML dan JSON? Mengapa JSON lebih populer dibandingkan XML?  
+Kalau saya bedakan, autentikasi itu adalah proses untuk memastikan identitas user biasanya lewat username dan password, sedangkan otorisasi adalah langkah selanjutnya setelah identitas diverifikasi, yaitu menentukan hak akses apa saja yang boleh dilakukan user tersebut. Django sudah punya sistem bawaan untuk dua hal ini. Untuk autentikasi, ada modul django.contrib.auth dan form login bawaan. Setelah login, middleware AuthenticationMiddleware akan otomatis menambahkan informasi user ke dalam request, jadi saya bisa tahu siapa yang sedang login. Untuk otorisasi, Django menyediakan sistem permission dan groups yang bisa dipakai untuk mengatur level akses. Selain itu, ada juga decorator seperti @login_required atau @permission_required yang bisa langsung dipasang pada view tertentu supaya hanya user dengan akses yang sesuai yang bisa membuka halaman atau menjalankan fungsi tersebut.
 
-“Lebih baik” itu bergantung kebutuhan. Menurutku lebih baik menggunakan JSON. Dalam praktik web modern, JSON lebih populer karena:  
-- Ia bersifat ringkas dan mudah dibaca dengan struktur lebih pendek, hemat bandwidth.  
-- Ia native di JavaScript jadi langsung di-parse/dipakai di browser tanpa konversi rumit.  
-- Ia ada kinerja parsing jadi umumnya lebih cepat dan sederhana dibanding XML.  
-- Ia memiliki ekosistem di hampir semua framework API, frontend, dan tool modern mengutamakan JSON.  
+ ---
 
-Kapan XML tetap berguna? Saat butuh metadata kaya (atribut), skema formal yang ketat (XSD), dokumen berstruktur kompleks, atau interoperabilitas dengan sistem lama/enterprise.  
+ 3. Apa saja kelebihan dan kekurangan session dan cookies dalam konteks menyimpan state di aplikasi web?
 
----
+Dalam konteks menyimpan state, cookies dan session punya cara kerja yang berbeda. Cookies disimpan di sisi client, yaitu di browser, sehingga tidak membebani server. Ini membuat cookies cocok untuk menyimpan data kecil yang perlu dipakai lintas request. Tapi karena cookies selalu dikirim setiap kali ada request ke server, ukurannya terbatas dan bisa menambah overhead. Selain itu, cookies bisa dilihat dan diubah langsung oleh user, jadi tidak aman untuk menyimpan data penting. Sementara itu, session disimpan di sisi server. Browser hanya menyimpan ID session di cookie, sedangkan datanya ada di server. Menurut saya, session lebih aman untuk menyimpan data sensitif seperti user_id dan lebih fleksibel karena bisa menyimpan data kompleks. Namun, session membuat server harus menyimpan data tambahan dan ada kebutuhan untuk menghapus session yang kadaluarsa. Kalau aplikasi saya punya skala besar, biasanya saya perlu pakai sistem tambahan seperti Redis supaya pengelolaan session tetap efisien.
 
-3. Jelaskan fungsi dari method is_valid() pada form Django dan mengapa kita membutuhkan method tersebut?  
+ ---
 
-`is_valid()` memicu validasi form: memeriksa field wajib, tipe data, batas nilai, unique constraint (via model form), hingga validasi kustom. Jika valid, `cleaned_data` tersedia agar data aman digunakan/disimpan. Kita membutuhkan method is_valid untuk:  
-- Menjaga integritas data sebelum ke database.  
-- Mencegah error runtime akibat format/tipedata salah.  
-- Mencegah input berbahaya (mis. script injection) melalui mekanisme cleaning/validation.  
+ 4. Apakah penggunaan cookies aman secara default dalam pengembangan web, atau apakah ada risiko potensial yang harus diwaspadai? Bagaimana Django menangani hal tersebut?
 
----
+Menurut saya jawabannya tidak sepenuhnya. Cookies bisa dicuri lewat serangan XSS, dicegat lewat man-in-the-middle attack, atau bahkan diubah sendiri oleh user melalui browser. Risiko besar yang sering muncul adalah session hijacking, di mana orang lain mencuri session ID lalu masuk seolah-olah sebagai user kita, serta serangan seperti session fixation atau CSRF. Django sendiri sudah menyiapkan beberapa proteksi. Misalnya, ada opsi SESSION_COOKIE_SECURE=True supaya cookies hanya bisa dikirim lewat HTTPS, lalu SESSION_COOKIE_HTTPONLY=True agar cookies tidak bisa diakses dari JavaScript. Django juga menyediakan SESSION_COOKIE_SAMESITE yang bisa diatur agar cookies tidak dipakai lintas domain sembarangan, sehingga lebih aman dari CSRF. Selain itu, Django otomatis menambahkan CSRF token di form POST dan juga punya fitur signed cookies supaya cookies tidak bisa dimodifikasi sembarangan. Jadi walaupun cookies punya risiko, Django sudah cukup membantu saya untuk mengamankannya.
 
-4. Mengapa kita membutuhkan csrf_token saat membuat form di Django? Apa yang dapat terjadi jika kita tidak menambahkannya? Bagaimana hal tersebut dapat dimanfaatkan oleh penyerang?  
+ ---
 
-`csrf_token` melindungi dari Cross-Site Request Forgery (CSRF) dengan memastikan setiap POST berasal dari halaman sah milik aplikasi (bukan dari situs lain). Tanpa token:  
-- Penyerang dapat membuat halaman luar yang diam-diam mengirimkan form ke aplikasi saat user sedang login.  
-- Aksi berbahaya bisa terjadi tanpa sepengetahuan user (misal ganti password, transaksi, hapus data).  
+ 5. Jelaskan bagaimana cara kamu mengimplementasikan checklist di atas secara step-by-step (bukan hanya sekadar mengikuti tutorial).
 
-Dengan token unik per sesi/permintaan, request palsu dari domain lain akan ditolak karena tidak memiliki token valid.  
-
----
-
-5. Jelaskan bagaimana cara kamu mengimplementasikan checklist di atas secara step-by-step (bukan hanya sekadar mengikuti tutorial).  
-
-Berikut langkah yang saya lakukan di repo ini:  
-
-- Tahap implementasi dimulai membuat folder templates pada root project yang berisi base.html dan edit settings.py untuk include 'DIRS' ke templates.
-- Kemudian dilakukan penyesuaian pada file main.html utama untuk menyusun tampilan aplikasi (pakai extends base.html dan block content)
-- Selanjutnya, membuat forms.py untuk buat struktur input, menambahkan method showcase nya pada views.py.
-- Pada saat yang sama membuat create_product.html dan product_detail.html dan edit urls.py menyesuaikannya. Lalu buka settings.py dan tambahkan CSRF trusted origins.
-- Selanjutnya di views.py saya tambahkan method show xml, xmlbyid, json, dan jsonbyid dan menambahkan routing masing masing pada urls.py pada main.
-- Terakhir saya lakukan pengujian end-point JSON/XML (lewat Postman) untuk memastikan data ter-deliver dengan benar.  
-
-Catatan: untuk design html saya memanfaatkan AI untuk menghias tampilan antarmuka (diperbolehkan oleh ibu Ilma)
-
----
-
-6. Apakah ada feedback untuk asdos di tutorial 2 yang sudah kalian kerjakan?  
-
-So far so good, terima kasih banyak kakak asdos atas semua bimbingan dan bantuannya sejauh ini. Sukses juga untuk studiesnya ya kak :D
+Pertama saya set dan aktifakn virtual environment dan membuka views.py dan menambahkan importUserCreationForm dan messages. Lalu saya tambahkan fungs register di views.py. Setelah itu saya membuat register.html under directory main.templates dan menambahkan url routing pada urls.py. saya lakukan hal yang sama untuk method login dengan menambahkan import AuthenticationForm, buat login_user method, login.html, dan menambahkan routing nya pada urls.py. Kemudian saya menambahkan method logout user pada views.py dan menambahkan buttonnya pada main.html. Setelah itu saya tambahkan di views.py import login_required dan menambahkan decorator diatas fungsi show_main dan show_product. Saya juga menambahkan method last_login dengan import datetime, HttpResponseRedirect, dan verse. Saya memanfaatkan request.COOKIES untuk menampilkan data tersebut dan ubah fungsi logout user untuk menghapus cookies last login setelah lakukan logout. Setelah itu saya buat objek user pada class Product dan migrate kembali. Saya juga sesuaikan method create_product untuk mengirimkan data siapa yang membuat product. Saya sesuaikan method show_main, main.html, dan product_detail.html agar sesuai. Setelah itu, saya git add-commit-push dan juga push ke PWS.
