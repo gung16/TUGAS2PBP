@@ -17,10 +17,17 @@ from django.urls import reverse
 @login_required(login_url='/login')
 def show_main(request):
     filter_type = request.GET.get("filter", "all")  # default 'all'
+    category = request.GET.get("category", "")  # get category filter
+    
+    # Base queryset
     if filter_type == "all":
         product_list = Product.objects.all()
     else:
         product_list = Product.objects.filter(user=request.user)
+    
+    # Apply category filter if specified
+    if category:
+        product_list = product_list.filter(category=category)
 
     context = {
         'name': 'I Gusti Ngurah Agung Airlangga Putra',
@@ -43,7 +50,11 @@ def create_product(request):
         return redirect('main:show_main')
 
     context = {
-        'form': form
+        'form': form,
+        'name': 'I Gusti Ngurah Agung Airlangga Putra',
+        'npm' : '2406358794',
+        'class': 'PBP F',
+        'last_login': request.COOKIES.get('last_login', 'Never')
     }
     return render(request, "create_product.html", context)
 
@@ -66,7 +77,11 @@ def show_product(request, id):
     product.increment_views()
 
     context = {
-        'product': product
+        'product': product,
+        'name': 'I Gusti Ngurah Agung Airlangga Putra',
+        'npm' : '2406358794',
+        'class': 'PBP F',
+        'last_login': request.COOKIES.get('last_login', 'Never')
     }
 
     return render(request, "product_detail.html", context)
@@ -134,3 +149,25 @@ def logout_user(request):
     response = HttpResponseRedirect(reverse('main:login'))
     response.delete_cookie('last_login')
     return response
+
+def edit_product(request, id):
+    product = get_object_or_404(Product, pk=id)
+    form = ProductForm(request.POST or None, instance=product)
+    if form.is_valid() and request.method == 'POST':
+        form.save()
+        return redirect('main:show_main')
+
+    context = {
+        'form': form,
+        'name': 'I Gusti Ngurah Agung Airlangga Putra',
+        'npm' : '2406358794',
+        'class': 'PBP F',
+        'last_login': request.COOKIES.get('last_login', 'Never')
+    }
+
+    return render(request, "edit_product.html", context)
+
+def delete_product(request, id):
+    product = get_object_or_404(Product, pk=id)
+    product.delete()
+    return HttpResponseRedirect(reverse('main:show_main'))

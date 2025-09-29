@@ -1,0 +1,86 @@
+{% load static %}
+<div class="card product-card">
+  <!-- Product Image -->
+  <div class="relative">
+    {% if product.thumbnail %}
+      <a href="{% url 'main:show_product' product.id %}">
+        <img class="thumb" src="{{ product.thumbnail }}" alt="{{ product.name }} thumbnail">
+      </a>
+    {% else %}
+      <div class="thumb bg-gray-200 flex items-center justify-center">
+        <span class="text-gray-400">No Image</span>
+      </div>
+    {% endif %}
+    
+    <!-- Category Badge -->
+    <div class="absolute top-3 left-3">
+      <span class="pill">{{ product.get_category_display }}</span>
+    </div>
+    
+    <!-- Status Badges -->
+    <div class="absolute top-3 right-3 flex gap-2">
+      {% if product.is_featured %}
+        <span class="pill" style="background: rgba(251, 191, 36, 0.2); color: #fbbf24; border-color: rgba(251, 191, 36, 0.5);">
+          Featured
+        </span>
+      {% endif %}
+      {% if product.is_product_hot %}
+        <span class="pill" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; border-color: rgba(239, 68, 68, 0.5);">
+          Hot
+        </span>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Product Info -->
+  <div class="stack">
+    <!-- Product Name and Category -->
+    <div class="row">
+      <a href="{% url 'main:show_product' product.id %}">
+        <h3 class="title" style="font-size: 18px; margin: 0;">{{ product.name }}</h3>
+      </a>
+    </div>
+    
+    <!-- Brand and Weight -->
+    <div class="row muted">
+      <span>Brand: {{ product.brand }}</span>
+      <span>Weight: {{ product.weight }}g</span>
+    </div>
+    
+    <!-- Price and Rating -->
+    <div class="row">
+      <span class="price">Rp {{ product.price|floatformat:0 }}</span>
+      <span class="rating">★ {{ product.rating|default:0|floatformat:1 }}</span>
+    </div>
+    
+    <!-- Description -->
+    <p class="muted" style="font-size: 13px; line-height: 1.4;">
+      {{ product.description|truncatewords:15 }}
+    </p>
+    
+    <!-- Author and Stats -->
+    <div class="muted" style="font-size: 12px;">
+      By: {% if product.user %}{{ product.user.username }}{% else %}Anonymous{% endif %}
+    </div>
+    
+    <div class="row muted" style="font-size: 12px;">
+      <span>{{ product.created_at|date:"d M Y" }}</span>
+      <span>{{ product.product_views }} views</span>
+    </div>
+    
+    <!-- Action Buttons -->
+    <div class="row" style="margin-top: 12px;">
+      <a class="btn" href="{% url 'main:show_product' product.id %}">View Details</a>
+      {% if user.is_authenticated and product.user == user %}
+        <div class="flex gap-2">
+          <a class="btn ghost" href="{% url 'main:edit_product' product.pk %}" style="font-size: 12px; padding: 6px 10px;">
+            Edit
+          </a>
+          <a class="btn" href="{% url 'main:delete_product' product.pk %}" style="color: var(--danger); font-size: 12px; padding: 6px 10px;">
+            Delete
+          </a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>

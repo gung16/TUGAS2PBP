@@ -1,70 +1,60 @@
 {% extends 'base.html' %}
+{% load static %}
+
+{% block meta %}
+<title>Gung's Padel Shop - Products</title>
+{% endblock meta %}
+
 {% block content %}
-<div class="stack" style="margin-bottom: 12px;">
-  <div class="kicker">Profile</div>
-  <div class="card">
-    <div class="row">
-      <div>
-        <div class="title">Gung's Padel Shop</div>
-        <div class="subtitle">Made by: {{ name }} · {{ npm }} · {{ class }}</div>
-        {% if last_login %}
-        <div class="muted" style="margin-top:6px;">Last login: {{ last_login }}</div>
-        {% endif %}
-      </div>
-      <div style="display: flex; gap: 8px;">
-        <a class="btn primary" href="{% url 'main:create_product' %}">+ Add Product</a>
-        <a class="btn" href="{% url 'main:logout' %}" style="color: #ef4444;">Logout</a>
+<div class="container page" style="margin-top: 50px;">
+  <!-- Welcome Section -->
+  <div class="stack" style="margin-bottom: 16px;">
+    <div class="kicker">Welcome</div>
+    <div class="card">
+      <div class="row">
+        <div>
+          <div class="title">Shop Padel Today!</div>
+          <div class="subtitle">Find the best padel equipment and accessories</div>
+          <div class="muted" style="margin-top:8px;">
+            Logged in as: <strong>{{ request.user.username }}</strong>
+            {% if last_login %}
+            · Last login: {{ last_login }}
+            {% endif %}
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <a class="btn primary" href="{% url 'main:create_product' %}">+ Add Product</a>
+        </div>
       </div>
     </div>
   </div>
-</div>
 
-{% with f=request.GET.filter|default:'all' %}
-<div class="row" style="margin-bottom:12px; gap:8px; flex-wrap:wrap; justify-content:space-between;">
-  <div style="display:flex; gap:8px;">
-    <a class="pill {% if f == 'all' %}active{% endif %}" href="?filter=all">All Products</a>
-    <a class="pill {% if f == 'my' %}active{% endif %}" href="?filter=my">My Products</a>
+  <!-- Filter Section -->
+  {% with f=request.GET.filter|default:'all' %}
+  <div class="row" style="margin-bottom:12px; gap:8px; flex-wrap:wrap; justify-content:space-between;">
+    <div style="display:flex; gap:8px;">
+      <a class="pill {% if f == 'all' %}active{% endif %}" href="?{% if request.GET.category %}category={{ request.GET.category }}&{% endif %}filter=all">All Products</a>
+      <a class="pill {% if f == 'my' %}active{% endif %}" href="?{% if request.GET.category %}category={{ request.GET.category }}&{% endif %}filter=my">My Products</a>
+    </div>
   </div>
-  {% if request.user.is_authenticated %}
-    <span class="muted">· Logged in as {{ request.user.username }}</span>
+  {% endwith %}
+
+  <!-- Products Grid -->
+  {% if not product_list %}
+    <div class="card" style="text-align: center; padding: 40px;">
+      <div style="width: 120px; height: 120px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; background: rgba(148, 163, 184, 0.1); border-radius: 12px;">
+        <img src="{% static 'image/no-product.png' %}" alt="No products available" style="width: 80px; height: 80px; object-fit: contain;">
+      </div>
+      <h3 style="margin: 0 0 8px; font-size: 20px;">No products found</h3>
+      <p class="muted" style="margin: 0 0 20px;">Be the first to add a product to the shop.</p>
+      <a class="btn primary" href="{% url 'main:create_product' %}">+ Add Product</a>
+    </div>
+  {% else %}
+    <div class="grid cols-3">
+      {% for product in product_list %}
+        {% include 'card_product.html' with product=product %}
+      {% endfor %}
+    </div>
   {% endif %}
 </div>
-{% endwith %}
-
-{% if not product_list %}
-  <div class="card">No products to display.</div>
-{% else %}
-  <div class="grid cols-3">
-    {% for product in product_list %}
-      <div class="card stack">
-        {% if product.thumbnail %}
-          <a href="{% url 'main:show_product' product.id %}">
-            <img class="thumb" src="{{ product.thumbnail }}" alt="{{ product.name }} thumbnail">
-          </a>
-        {% endif %}
-        <div class="row">
-          <a href="{% url 'main:show_product' product.id %}"><h2 style="margin:0;">{{ product.name }}</h2></a>
-          <span class="pill">{{ product.get_category_display }}</span>
-        </div>
-        <div class="row muted">
-          <span>Brand: {{ product.brand }}</span>
-          <span>Weight: {{ product.weight }}</span>
-        </div>
-        <div class="row">
-          <span class="price">Rp {{ product.price|floatformat:0 }}</span>
-          <span class="rating">★ {{ product.rating|default:0|floatformat:1 }}</span>
-        </div>
-        <div class="muted" style="font-size: 13px;">By: {% if product.user %}{{ product.user.username }}{% else %}Anonymous{% endif %}</div>
-        <p class="muted">{{ product.description|truncatewords:20 }}</p>
-        <div class="row muted" style="font-size: 12px;">
-          <span>{% if product.is_featured %}Featured · {% endif %}{% if product.is_product_hot %}Hot · {% endif %}{{ product.created_at|date:"d M Y H:i" }}</span>
-          <span>Views: {{ product.product_views }}</span>
-        </div>
-        <div class="row">
-          <a class="btn" href="{% url 'main:show_product' product.id %}">View Details</a>
-        </div>
-      </div>
-    {% endfor %}
-  </div>
-{% endif %}
 {% endblock content %}
