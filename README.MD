@@ -1,3 +1,21 @@
+!! Readme TUGAS 6
+1. Apa perbedaan antara synchronous request dan asynchronous request?
+Synchronous request itu permintaan ke server yang harus ditunggu sampai selesai, jadi halaman atau proses lain akan berhenti dulu sampai server membalas. Kalau asynchronous request (seperti AJAX), permintaan dikirim ke server di belakang layar, jadi halaman tetap bisa dipakai tanpa harus reload atau nunggu lama.
+
+2. Bagaimana AJAX bekerja di Django (alur request–response)?
+AJAX di Django biasanya pakai fetch atau XMLHttpRequest dari JavaScript untuk kirim request ke endpoint Django (misal, url yang mengembalikan JSON). Django menerima request itu, proses data, lalu balas dengan response (biasanya JSON). Di sisi frontend, JavaScript akan terima response itu dan update tampilan sesuai data yang didapat, tanpa reload halaman.
+
+3. Apa keuntungan menggunakan AJAX dibandingkan render biasa di Django?
+Keuntungannya, user experience jadi lebih baik karena halaman tidak perlu reload penuh setiap ada aksi (misal, lihat detail produk, submit form, dsb). Data bisa diambil atau dikirim secara dinamis, lebih cepat, dan interaktif. Selain itu, beban server dan bandwidth juga bisa lebih ringan karena hanya data yang dibutuhkan saja yang dikirim.
+
+4. Bagaimana cara memastikan keamanan saat menggunakan AJAX untuk fitur Login dan Register di Django?
+Pastikan selalu mengirim CSRF token di setiap request POST (bisa lewat header atau form data). Validasi input di backend tetap wajib, jangan hanya di frontend. Gunakan HTTPS supaya data tidak mudah disadap. Selain itu, response dari server sebaiknya tidak mengandung data sensitif, dan error handling harus baik supaya tidak membocorkan informasi penting.
+
+5. Bagaimana AJAX mempengaruhi pengalaman pengguna (User Experience) pada website?
+AJAX bikin website terasa lebih responsif dan modern. User tidak perlu menunggu reload halaman, loading state dan error bisa ditampilkan langsung di bagian tertentu, dan interaksi jadi lebih cepat. Contohnya di kode saya, detail produk diambil pakai AJAX dan loading/error state langsung muncul di halaman, jadi user tahu apa yang sedang terjadi tanpa harus pindah halaman.
+
+---
+
 !! Readme TUGAS 5
 1. Jika terdapat beberapa CSS selector untuk suatu elemen HTML, jelaskan urutan prioritas pengambilan CSS selector tersebut!
 
@@ -26,25 +44,17 @@ Pertama, saya membuka base.html dan menambahkan script source tailwindcss.com. L
 
 Menurut saya, AuthenticationForm adalah form bawaan dari Django yang ada di django.contrib.auth.forms dan memang dipakai untuk menangani login. Fungsinya adalah mengecek apakah username yang dimasukkan ada di database, lalu memastikan password yang diberikan sesuai dengan user tersebut. Kalau cocok, maka user dianggap sudah tervalidasi dan bisa login. Kelebihan dari form ini adalah saya tidak perlu repot menulis validasi manual, karena Django sudah menyiapkan logikanya. Selain itu, AuthenticationForm sudah terintegrasi dengan sistem autentikasi Django, jadi bisa langsung dipakai bersama view login tanpa konfigurasi yang rumit. Form ini juga cukup mudah untuk diubah atau dikustomisasi sesuai kebutuhan. Kekurangannya, form ini hanya mendukung login berbasis username dan password secara default, jadi kalau aplikasi saya butuh login pakai email atau OTP, tetap harus saya modifikasi lagi. Dari sisi fleksibilitas untuk tampilan modern, kadang juga agak terbatas.
 
----
-
 2. Apa perbedaan antara autentikasi dan otorisasi? Bagaiamana Django mengimplementasikan kedua konsep tersebut?
 
 Kalau saya bedakan, autentikasi itu adalah proses untuk memastikan identitas user biasanya lewat username dan password, sedangkan otorisasi adalah langkah selanjutnya setelah identitas diverifikasi, yaitu menentukan hak akses apa saja yang boleh dilakukan user tersebut. Django sudah punya sistem bawaan untuk dua hal ini. Untuk autentikasi, ada modul django.contrib.auth dan form login bawaan. Setelah login, middleware AuthenticationMiddleware akan otomatis menambahkan informasi user ke dalam request, jadi saya bisa tahu siapa yang sedang login. Untuk otorisasi, Django menyediakan sistem permission dan groups yang bisa dipakai untuk mengatur level akses. Selain itu, ada juga decorator seperti @login_required atau @permission_required yang bisa langsung dipasang pada view tertentu supaya hanya user dengan akses yang sesuai yang bisa membuka halaman atau menjalankan fungsi tersebut.
-
----
 
 3. Apa saja kelebihan dan kekurangan session dan cookies dalam konteks menyimpan state di aplikasi web?
 
 Dalam konteks menyimpan state, cookies dan session punya cara kerja yang berbeda. Cookies disimpan di sisi client, yaitu di browser, sehingga tidak membebani server. Ini membuat cookies cocok untuk menyimpan data kecil yang perlu dipakai lintas request. Tapi karena cookies selalu dikirim setiap kali ada request ke server, ukurannya terbatas dan bisa menambah overhead. Selain itu, cookies bisa dilihat dan diubah langsung oleh user, jadi tidak aman untuk menyimpan data penting. Sementara itu, session disimpan di sisi server. Browser hanya menyimpan ID session di cookie, sedangkan datanya ada di server. Menurut saya, session lebih aman untuk menyimpan data sensitif seperti user_id dan lebih fleksibel karena bisa menyimpan data kompleks. Namun, session membuat server harus menyimpan data tambahan dan ada kebutuhan untuk menghapus session yang kadaluarsa. Kalau aplikasi saya punya skala besar, biasanya saya perlu pakai sistem tambahan seperti Redis supaya pengelolaan session tetap efisien.
 
----
-
 4. Apakah penggunaan cookies aman secara default dalam pengembangan web, atau apakah ada risiko potensial yang harus diwaspadai? Bagaimana Django menangani hal tersebut?
 
 Menurut saya jawabannya tidak sepenuhnya. Cookies bisa dicuri lewat serangan XSS, dicegat lewat man-in-the-middle attack, atau bahkan diubah sendiri oleh user melalui browser. Risiko besar yang sering muncul adalah session hijacking, di mana orang lain mencuri session ID lalu masuk seolah-olah sebagai user kita, serta serangan seperti session fixation atau CSRF. Django sendiri sudah menyiapkan beberapa proteksi. Misalnya, ada opsi SESSION_COOKIE_SECURE=True supaya cookies hanya bisa dikirim lewat HTTPS, lalu SESSION_COOKIE_HTTPONLY=True agar cookies tidak bisa diakses dari JavaScript. Django juga menyediakan SESSION_COOKIE_SAMESITE yang bisa diatur agar cookies tidak dipakai lintas domain sembarangan, sehingga lebih aman dari CSRF. Selain itu, Django otomatis menambahkan CSRF token di form POST dan juga punya fitur signed cookies supaya cookies tidak bisa dimodifikasi sembarangan. Jadi walaupun cookies punya risiko, Django sudah cukup membantu saya untuk mengamankannya.
-
----
 
 5. Jelaskan bagaimana cara kamu mengimplementasikan checklist di atas secara step-by-step (bukan hanya sekadar mengikuti tutorial).
 

@@ -23,38 +23,265 @@
           </div>
         </div>
         <div style="display: flex; gap: 8px;">
-          <a class="btn primary" href="{% url 'main:create_product' %}">+ Add Product</a>
+          <button onclick="showModal('create')" class="btn primary">+ Add Product</button>
+          <button id="refreshBtn" class="btn">Refresh</button>
         </div>
       </div>
     </div>
   </div>
 
   <!-- Filter Section -->
-  {% with f=request.GET.filter|default:'all' %}
   <div class="row" style="margin-bottom:12px; gap:8px; flex-wrap:wrap; justify-content:space-between;">
     <div style="display:flex; gap:8px;">
-      <a class="pill {% if f == 'all' %}active{% endif %}" href="?{% if request.GET.category %}category={{ request.GET.category }}&{% endif %}filter=all">All Products</a>
-      <a class="pill {% if f == 'my' %}active{% endif %}" href="?{% if request.GET.category %}category={{ request.GET.category }}&{% endif %}filter=my">My Products</a>
+      <a id="filter-all" class="pill active" href="javascript:void(0)">All Products</a>
+      <a id="filter-my" class="pill" href="javascript:void(0)">My Products</a>
     </div>
   </div>
-  {% endwith %}
 
-  <!-- Products Grid -->
-  {% if not product_list %}
-    <div class="card" style="text-align: center; padding: 40px;">
-      <div style="width: 120px; height: 120px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; background: rgba(148, 163, 184, 0.1); border-radius: 12px;">
-        <img src="{% static 'image/no-product.png' %}" alt="No products available" style="width: 80px; height: 80px; object-fit: contain;">
-      </div>
-      <h3 style="margin: 0 0 8px; font-size: 20px;">No products found</h3>
-      <p class="muted" style="margin: 0 0 20px;">Be the first to add a product to the shop.</p>
-      <a class="btn primary" href="{% url 'main:create_product' %}">+ Add Product</a>
+  <!-- Loading State -->
+  <div id="loading" class="card hidden" style="text-align:center; padding:28px;">
+    <div class="muted">Loading products...</div>
+  </div>
+
+  <!-- Error State -->
+  <div id="error" class="card hidden" style="padding:16px; border-left:4px solid #ef4444; color:#991b1b; background:#fef2f2;">
+    Failed to load products. Please try again.
+  </div>
+
+  <!-- Empty State -->
+  <div id="empty" class="card hidden" style="text-align: center; padding: 40px;">
+    <div style="width: 120px; height: 120px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; background: rgba(148, 163, 184, 0.1); border-radius: 12px;">
+      <img src="{% static 'image/no-product.png' %}" alt="No products available" style="width: 80px; height: 80px; object-fit: contain;">
     </div>
-  {% else %}
-    <div class="grid cols-3">
-      {% for product in product_list %}
-        {% include 'card_product.html' with product=product %}
-      {% endfor %}
-    </div>
-  {% endif %}
+    <h3 style="margin: 0 0 8px; font-size: 20px;">No products found</h3>
+    <p class="muted" style="margin: 0 0 20px;">Be the first to add a product to the shop.</p>
+    <button class="btn primary" onclick="showModal('create')">+ Add Product</button>
+  </div>
+
+  <!-- Products Grid (AJAX target) -->
+  <div id="grid" class="grid cols-3 hidden">
+    <!-- cards will be injected here by JS -->
+  </div>
 </div>
+
+<!-- Inline Script -->
+<script>
+const PRODUCTS_API_ENDPOINT = "{% url 'main:show_json' %}";
+const CURRENT_USER_ID = "{{ user.id|default_if_none:'' }}";
+
+const loadingSpinner = document.getElementById('loading');
+const errorMessage = document.getElementById('error');
+const emptyStateDisplay = document.getElementById('empty');
+const productsGridContainer = document.getElementById('grid');
+const showAllBtn = document.getElementById('filter-all');
+const showMyBtn = document.getElementById('filter-my');
+const refreshBtn = document.getElementById('refreshBtn');
+
+let activeFilter = 'all';
+let allProducts = [];
+
+function displaySection({ showLoading=false, showError=false, showEmpty=false, showGrid=false }) {
+  loadingSpinner.classList.toggle('hidden', !showLoading);
+  errorMessage.classList.toggle('hidden', !showError);
+  emptyStateDisplay.classList.toggle('hidden', !showEmpty);
+  productsGridContainer.classList.toggle('hidden', !showGrid);
+}
+
+function updateFilterPills() {
+  if (activeFilter === 'all') {
+    showAllBtn.classList.add('active');
+    showMyBtn.classList.remove('active');
+  } else {
+    showMyBtn.classList.add('active');
+    showAllBtn.classList.remove('active');
+  }
+}
+
+function getId(p){ return p.id; }
+function getUserId(p){ return p.user_id ?? (p.user && p.user.id) ?? null; }
+function getName(p){ return p.name || 'Unnamed Product'; }
+function getPrice(p){ const v = p.price; return typeof v === 'number' ? v : (parseFloat(v)||0); }
+function getDesc(p){ return p.description || ''; }
+function getCategory(p){ return p.category || 'General'; }
+function getThumb(p){ return p.thumbnail || ''; }
+function getViews(p){ return p.product_views ?? 0; }
+function isFeatured(p){ return !!p.is_featured; }
+
+function categoryLabel(code) {
+  const map = { racket:'Racket', shoes:'Shoes', accesories:'Accessories', bags:'Bags', balls:'Balls' };
+  return map[code] || code;
+}
+
+// Used after reterieving data to build the product card
+function buildProductCard(p) {
+  const article = document.createElement('div');
+  article.className = 'card product-card';
+
+  // Product image
+  const thumb = DOMPurify.sanitize(getThumb(p));
+  const name = DOMPurify.sanitize(getName(p));
+  const detailUrl = `{% url 'main:show_product' '00000000-0000-0000-0000-000000000000' %}`.replace('00000000-0000-0000-0000-000000000000', getId(p));
+  const cat = DOMPurify.sanitize(categoryLabel(getCategory(p)));
+  const brand = DOMPurify.sanitize(p.brand || '');
+  const weight = DOMPurify.sanitize(String(p.weight ?? ''));
+  const price = getPrice(p);
+  const rating = typeof p.rating === 'number' ? p.rating : (parseFloat(p.rating) || 0);
+  const desc = DOMPurify.sanitize(getDesc(p));
+  const views = DOMPurify.sanitize(String(getViews(p)));
+  const createdAt = p.created_at ? new Date(p.created_at) : null;
+  const createdAtStr = createdAt ? createdAt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
+  const userName = p.user_username ? DOMPurify.sanitize(p.user_username) : 'Anonymous';
+  const owner = CURRENT_USER_ID && String(CURRENT_USER_ID) === String(getUserId(p));
+  const isFeaturedVal = !!p.is_featured;
+  const isHot = !!p.is_product_hot;
+
+  // Status badges
+  let statusBadges = '';
+  if (isFeaturedVal) {
+    statusBadges += `<span class="pill" style="background: rgba(251, 191, 36, 0.2); color: #fbbf24; border-color: rgba(251, 191, 36, 0.5);">Featured</span>`;
+  }
+  if (isHot) {
+    statusBadges += `<span class="pill" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; border-color: rgba(239, 68, 68, 0.5);">Hot</span>`;
+  }
+
+  // Action buttons
+  let actions = `<a class="btn" href="${detailUrl}">View Details</a>`;
+  if (owner) {
+    actions += `
+      <div class="flex gap-2">
+        <a class="btn ghost" href="#" data-action="edit" style="font-size: 12px; padding: 6px 10px;">Edit</a>
+        <a class="btn" href="#" data-action="delete" style="color: var(--danger); font-size: 12px; padding: 6px 10px;">Delete</a>
+      </div>
+    `;
+  }
+
+  article.innerHTML = `
+    <!-- Product Image -->
+    <div class="relative">
+      ${thumb
+        ? `<a href="${detailUrl}">
+            <img class="thumb" src="${thumb}" alt="${name} thumbnail">
+          </a>`
+        : `<div class="thumb bg-gray-200 flex items-center justify-center">
+            <span class="text-gray-400">No Image</span>
+          </div>`
+      }
+      <!-- Category Badge -->
+      <div class="absolute top-3 left-3">
+        <span class="pill">${cat}</span>
+      </div>
+      <!-- Status Badges -->
+      <div class="absolute top-3 right-3 flex gap-2">
+        ${statusBadges}
+      </div>
+    </div>
+
+    <!-- Product Info -->
+    <div class="stack">
+      <!-- Product Name and Category -->
+      <div class="row">
+        <a href="${detailUrl}">
+          <h3 class="title" style="font-size: 18px; margin: 0;">${name}</h3>
+        </a>
+      </div>
+      <!-- Brand and Weight -->
+      <div class="row muted">
+        <span>Brand: ${brand}</span>
+        <span>Weight: ${weight}g</span>
+      </div>
+      <!-- Price and Rating -->
+      <div class="row">
+        <span class="price">Rp ${price.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</span>
+        <span class="rating">★ ${rating.toFixed(1)}</span>
+      </div>
+      <!-- Description -->
+      <p class="muted" style="font-size: 13px; line-height: 1.4;">
+        ${desc.split(' ').slice(0, 15).join(' ')}${desc.split(' ').length > 15 ? '...' : ''}
+      </p>
+      <!-- Author and Stats -->
+      <div class="muted" style="font-size: 12px;">
+        By: ${userName}
+      </div>
+      <div class="row muted" style="font-size: 12px;">
+        <span>${createdAtStr}</span>
+        <span>${views} views</span>
+      </div>
+      <!-- Action Buttons -->
+      <div class="row" style="margin-top: 12px;">
+        ${actions}
+      </div>
+    </div>
+  `;
+
+  // Attach event listeners for edit/delete if owner
+  if (owner) {
+    const editBtn = article.querySelector('[data-action="edit"]');
+    const deleteBtn = article.querySelector('[data-action="delete"]');
+    if (editBtn) editBtn.addEventListener('click', (e) => { e.preventDefault(); showModal('edit', p); });
+    if (deleteBtn) deleteBtn.addEventListener('click', (e) => { e.preventDefault(); showConfirm(p); });
+  }
+
+  return article;
+}
+
+function renderProducts(items) {
+  productsGridContainer.innerHTML = '';
+  items.forEach(p => productsGridContainer.appendChild(buildProductCard(p)));
+}
+
+// Function untuk ngefilter dan ngerender data
+function filterAndDisplay() {
+  updateFilterPills();
+  const filtered = (activeFilter === 'all') ? allProducts : allProducts.filter(p => String(getUserId(p)) === String(CURRENT_USER_ID));
+  if (!filtered.length) {
+    displaySection({ showEmpty: true });
+  } else {
+    renderProducts(filtered);
+    displaySection({ showGrid: true });
+  }
+}
+
+// Function untuk ngefetch data
+async function fetchProducts() {
+  try {
+    displaySection({ showLoading: true });
+    const qs = window.location.search || '';
+    const resp = await fetch(PRODUCTS_API_ENDPOINT + qs, { headers: { 'Accept': 'application/json' }});
+    if (!resp.ok) throw new Error('Failed to fetch product data');
+    const data = await resp.json();
+    allProducts = Array.isArray(data) ? data : (data.products || []);
+    filterAndDisplay();
+  } catch (e) {
+    console.error(e);
+    displaySection({ showError: true });
+  }
+}
+
+// Initializenews page
+function initPage() {
+  showAllBtn.addEventListener('click', () => {
+    activeFilter = 'all';
+    const url = new URL(window.location);
+    url.searchParams.set('filter', 'all');
+    window.history.replaceState({}, '', url);
+    fetchProducts();
+  });
+  showMyBtn.addEventListener('click', () => {
+    activeFilter = 'my';
+    const url = new URL(window.location);
+    url.searchParams.set('filter', 'my');
+    window.history.replaceState({}, '', url);
+    fetchProducts();
+  });
+  refreshBtn.addEventListener('click', () => { fetchProducts(); showToast('Refreshed', 'Product list updated', 'success', 1500); });
+  const params = new URLSearchParams(window.location.search);
+  const filterParam = params.get('filter');
+  if (filterParam === 'my') activeFilter = 'my';
+  fetchProducts();
+}
+initPage();
+
+document.addEventListener('productChanged', fetchProducts);
+</script>
+
 {% endblock content %}

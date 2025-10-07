@@ -7,47 +7,182 @@
 
 {% block content %}
 <div class="container page" style="margin-top: 50px;">
-  <div class="stack">
+
+  <!-- Back Navigation -->
+  <div class="stack" style="margin-bottom: 12px;">
     <a class="btn" href="{% url 'main:show_main' %}">← View other products</a>
-    <div class="grid" style="grid-template-columns: 1.2fr 1fr; gap: 20px;">
-      <div class="card stack">
-        {% if product.thumbnail %}
-          <img class="thumb" src="{{ product.thumbnail }}" alt="{{ product.name }} thumbnail" style="aspect-ratio: 16/10;">
-        {% endif %}
-        <div class="row">
-          <h1 style="margin:0;">{{ product.name }}</h1>
-          <span class="pill">{{ product.get_category_display }}</span>
-        </div>
-        <div class="row muted">
-          <span>Brand: {{ product.brand }}</span>
-          <span>Weight: {{ product.weight }}g</span>
-        </div>
-        <div class="row">
-          <span class="price">Rp {{ product.price|floatformat:0 }}</span>
-          <span class="rating">★ {{ product.rating|default:0|floatformat:1 }}</span>
-        </div>
-        <p>{{ product.description }}</p>
-        <div class="muted" style="font-size: 13px;">By: {% if product.user %}{{ product.user.username }}{% else %}Anonymous{% endif %}</div>
-        <div class="row muted" style="font-size: 12px;">
-          <span>{% if product.is_featured %}Featured · {% endif %}{% if product.is_product_hot %}Hot · {% endif %}{{ product.created_at|date:"d M Y H:i" }}</span>
-          <span>Views: {{ product.product_views }}</span>
-        </div>
+  </div>
+
+  <!-- Loading State -->
+  <div id="loading-state" class="card" style="text-align:center; padding:28px;">
+    <div class="muted">Loading product detail...</div>
+  </div>
+
+  <!-- Error State -->
+  <div id="error-state" class="card hidden" style="padding:16px; border-left:4px solid #ef4444; color:#991b1b; background:#fef2f2;">
+    <div style="font-size:20px; font-weight:600; margin-bottom:4px;">Failed to load product</div>
+    <div class="muted">Please try again later.</div>
+  </div>
+
+  <!-- Product Content -->
+  <div id="product-content" class="grid hidden" style="grid-template-columns: 1.2fr 1fr; gap: 20px;">
+    <!-- Left Card -->
+    <div class="card stack" id="left-card">
+      <div id="thumb-wrap" style="display:none;">
+        <img id="product-thumb" class="thumb" src="" alt="" style="aspect-ratio: 16/10;">
       </div>
 
-      <div class="card stack">
-        <h3 style="margin:0 0 4px;">Rate this product</h3>
-        <form method="post">
-          {% csrf_token %}
-          <div class="form-row">
-            <label for="rating" class="muted">Your rating (0.0 - 5.0)</label>
-            <input class="input" type="number" id="rating" name="rating" min="0" max="5" step="0.1" value="{{ product.rating|default:0|floatformat:1 }}" required>
-          </div>
-          <div class="spacer"></div>
-          <button class="btn primary" type="submit">Submit Rating</button>
-        </form>
-        <div class="muted" style="font-size: 12px;">Current average: ★ {{ product.rating|default:0|floatformat:1 }}</div>
+      <div class="row" style="align-items:center; gap:8px;">
+        <h1 id="product-name" style="margin:0;"></h1>
+        <span id="product-category-pill" class="pill"></span>
       </div>
+
+      <div class="row muted" style="gap:10px;">
+        <span id="product-brand"></span>
+        <span>•</span>
+        <span id="product-weight"></span>
+      </div>
+
+      <div class="row" style="gap:10px; align-items:center;">
+        <span id="product-price" class="price"></span>
+        <span id="product-rating" class="rating"></span>
+      </div>
+
+      <p id="product-desc"></p>
+
+      <div class="muted" style="font-size: 13px;">
+        By: <span id="product-author">Anonymous</span>
+      </div>
+
+      <div class="row muted" style="font-size: 12px; gap:10px;">
+        <span id="product-flags-date"></span>
+        <span>•</span>
+        <span id="product-views"></span>
+      </div>
+    </div>
+
+    <!-- Right Card: Rating Form -->
+    <div class="card stack">
+      <h3 style="margin:0 0 4px;">Rate this product</h3>
+      <form id="rating-form" method="post" action="">
+        {% csrf_token %}
+        <div class="form-row">
+          <label for="rating" class="muted">Your rating (0.0 - 5.0)</label>
+          <input class="input" type="number" id="rating" name="rating" min="0" max="5" step="0.1" value="0.0" required>
+        </div>
+        <div class="spacer"></div>
+        <button class="btn primary" type="submit">Submit Rating</button>
+      </form>
+      <div class="muted" style="font-size: 12px;">Current average: <span id="rating-current">★ 0.0</span></div>
     </div>
   </div>
 </div>
+<!-- Inline Script -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const PRODUCT_ID = "{{ product.id }}";
+  const PRODUCT_DETAIL_ENDPOINT = `{% url 'main:show_json_by_id' '00000000-0000-0000-0000-000000000000' %}`.replace('00000000-0000-0000-0000-000000000000', PRODUCT_ID);
+
+  const loadingState = document.getElementById('loading-state');
+  const errorState = document.getElementById('error-state');
+  const productContent = document.getElementById('product-content');
+
+  const thumbWrap = document.getElementById('thumb-wrap');
+  const productThumb = document.getElementById('product-thumb');
+
+  const productNameEl = document.getElementById('product-name');
+  const productCategoryPill = document.getElementById('product-category-pill');
+  const productBrandEl = document.getElementById('product-brand');
+  const productWeightEl = document.getElementById('product-weight');
+  const productPriceEl = document.getElementById('product-price');
+  const productRatingEl = document.getElementById('product-rating');
+  const productDescEl = document.getElementById('product-desc');
+  const productAuthorEl = document.getElementById('product-author');
+  const productFlagsDateEl = document.getElementById('product-flags-date');
+  const productViewsEl = document.getElementById('product-views');
+
+  const ratingForm = document.getElementById('rating-form');
+  const ratingInput = document.getElementById('rating');
+  const ratingCurrent = document.getElementById('rating-current');
+
+  function showState(state) {
+    loadingState.classList.toggle('hidden', state !== 'loading');
+    errorState.classList.toggle('hidden', state !== 'error');
+    productContent.classList.toggle('hidden', state !== 'ready');
+  }
+
+  function getCategoryLabel(code) {
+    const map = { racket:'Racket', bag:'Bag', ball:'Ball', apparel:'Apparel', accessory:'Accessory', other:'Other' };
+    return map[code] || code || 'General';
+  }
+
+  function getName(p){ return p.name || p.title || 'Unnamed Product'; }
+  function getCategory(p){ return p.category || p.kategori || 'other'; }
+  function getBrand(p){ return p.brand || p.merk || ''; }
+  function getWeight(p){ return p.weight ?? p.berat ?? null; }
+  function getPrice(p){ const v = p.price ?? p.harga; return typeof v === 'number' ? v : (parseFloat(v) || 0); }
+  function getRating(p){ const v = p.rating ?? p.average_rating ?? 0; return typeof v === 'number' ? v : (parseFloat(v) || 0); }
+  function getDesc(p){ return p.description || p.deskripsi || ''; }
+  function getThumb(p){ return p.thumbnail || p.image || p.image_url || ''; }
+  function getUserName(p){ if (p.user_username) return p.user_username; if (p.user && (p.user.username || p.user.name)) return p.user.username || p.user.name; return 'Anonymous'; }
+  function getCreatedAt(p){ return p.created_at || p.created || p.timestamp || null; }
+  function getViews(p){ return p.product_views ?? p.views ?? 0; }
+  function isFeatured(p){ return Boolean(p.is_featured); }
+  function isHot(p){ return Boolean(p.is_product_hot) || getViews(p) > 20; }
+
+  function renderProduct(p) {
+    const name = getName(p);
+    document.title = `Gung's Padel Shop`;
+    productNameEl.textContent = name;
+    productCategoryPill.textContent = getCategoryLabel(getCategory(p));
+    const brand = getBrand(p);
+    productBrandEl.textContent = brand ? `Brand: ${brand}` : 'Brand: -';
+    const weight = getWeight(p);
+    productWeightEl.textContent = weight ? `Weight: ${weight}g` : 'Weight: -';
+    const price = getPrice(p);
+    productPriceEl.textContent = `Rp ${price.toLocaleString('id-ID')}`;
+    const rating = Math.max(0, Math.min(5, getRating(p)));
+    productRatingEl.textContent = `★ ${rating.toFixed(1)}`;
+    if (ratingInput) ratingInput.value = rating.toFixed(1);
+    if (ratingCurrent) ratingCurrent.textContent = `★ ${rating.toFixed(1)}`;
+    const thumb = getThumb(p);
+    if (thumb) {
+      productThumb.src = thumb;
+      productThumb.alt = `${name} thumbnail`;
+      thumbWrap.style.display = '';
+    } else {
+      thumbWrap.style.display = 'none';
+    }
+    productDescEl.textContent = getDesc(p);
+    productAuthorEl.textContent = getUserName(p);
+    const created = getCreatedAt(p);
+    const dateLabel = created ? new Date(created).toLocaleDateString('en-US', {year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'}) : '';
+    const parts = [];
+    if (isFeatured(p)) parts.push('Featured');
+    if (isHot(p)) parts.push('Hot');
+    if (dateLabel) parts.push(dateLabel);
+    productFlagsDateEl.textContent = parts.join(' · ');
+    productViewsEl.textContent = `Views: ${getViews(p)}`;
+  }
+
+  async function loadProductDetail() {
+    try {
+      showState('loading');
+      const resp = await fetch(PRODUCT_DETAIL_ENDPOINT, { headers: { 'Accept': 'application/json' } });
+      if (!resp.ok) throw new Error('Failed to fetch product detail');
+      const data = await resp.json();
+      const product = (data && !Array.isArray(data) && data.product) ? data.product : data;
+      renderProduct(product);
+      showState('ready');
+      if (ratingForm) ratingForm.action = window.location.href;
+    } catch (e) {
+      console.error(e);
+      showState('error');
+    }
+  }
+
+  loadProductDetail();
+});
+</script>
+
 {% endblock content %}

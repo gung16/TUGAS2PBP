@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     {% block meta %} {% endblock meta %}
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.5/dist/purify.min.js"></script>
     <link rel="stylesheet" href="{% static 'css/global.css' %}"/>
 
     <title>Gung's Padel Shop</title>
@@ -18,5 +19,17 @@
     <main class="container page">
         {% block content %} {% endblock content %}
     </main>
+
+    {% include 'toast.html' %}
+    {% include 'modal.html' %}
+    <script>
+      // show toast on logout via query param
+      const params = new URLSearchParams(window.location.search);
+      if (typeof showToast === 'function') {
+        if (params.get('loggedout') === '1') showToast('Logged out', 'See you again soon', 'success');
+        if (params.get('loggedin') === '1') showToast('Welcome back', 'Login successful', 'success');
+        if (params.get('registered') === '1') showToast('Account created', 'You can now log in', 'success');
+      }
+    </script>
 </body>
 </html>

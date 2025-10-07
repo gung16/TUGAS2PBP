@@ -11,7 +11,7 @@
   <div class="card" style="width:min(420px, 100%);">
     <div class="stack">
       <h1 style="margin:0;">Login</h1>
-      <form method="POST" action="" class="stack">
+      <form id="loginForm" method="POST" action="" class="stack">
         {% csrf_token %}
         <div class="table-like"><table>{{ form.as_table }}</table></div>
         <button class="btn primary" type="submit">Login</button>
@@ -27,3 +27,36 @@
 </div>
 
 {% endblock content %}
+
+<script>
+function getCookie(name) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
+}
+
+document.getElementById('loginForm').addEventListener('submit', async function(e){
+  e.preventDefault();
+  const form = e.target;
+  const formData = new FormData(form);
+  const resp = await fetch("{% url 'main:login' %}", {
+    method: 'POST',
+    headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': getCookie('csrftoken') },
+    body: formData,
+  });
+  if (resp.headers.get('content-type')?.includes('application/json')) {
+    const data = await resp.json();
+    if (data.success) {
+      showToast('Welcome back', 'Login successful', 'success');
+      window.location.href = data.redirect_url || "{% url 'main:show_main' %}";
+      return;
+    }
+  }
+  if (resp.ok) {
+    showToast('Welcome back', 'Login successful', 'success');
+    window.location.href = "{% url 'main:show_main' %}";
+  } else {
+    showToast('Login failed', 'Please check your credentials', 'error');
+  }
+});
+</script>
