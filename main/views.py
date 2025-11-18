@@ -19,6 +19,84 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.utils.html import strip_tags
 
+#Tugas 9
+import requests
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.html import strip_tags
+import json
+from django.http import JsonResponse
+
+def proxy_image(request):
+    image_url = request.GET.get('url')
+    if not image_url:
+        return HttpResponse('No URL provided', status=400)
+    
+    try:
+        # Fetch image from external source
+        response = requests.get(image_url, timeout=10)
+        response.raise_for_status()
+        
+        # Return the image with proper content type
+        return HttpResponse(
+            response.content,
+            content_type=response.headers.get('Content-Type', 'image/jpeg')
+        )
+    except requests.RequestException as e:
+        return HttpResponse(f'Error fetching image: {str(e)}', status=500)
+    
+@csrf_exempt
+def create_product_flutter(request):
+    if request.method == 'POST':
+        try:
+            # Load JSON data from the request body
+            data = json.loads(request.body)
+            
+            # 1. Extract and sanitize fields
+            # Use 'name' instead of 'title' and 'description' instead of 'content'
+            name = strip_tags(data.get("name", ""))
+            description = strip_tags(data.get("description", ""))
+            
+            # Fields matching the Dart model (ensure your Django model fields and types match)
+            price = data.get("price")  # Expecting an int
+            category = data.get("category", "")
+            thumbnail = data.get("thumbnail", "")
+            is_featured = data.get("is_featured", False) # Expecting a boolean
+            brand = data.get("brand", "")
+            weight = data.get("weight") # Expecting an int
+            
+            # 2. Basic validation for required fields (Name, Price, Description)
+            if not name or price is None or not description:
+                 return JsonResponse({"status": "error", "message": "Missing required fields (name, price, or description)."}, status=400)
+            
+            # 3. Get the authenticated user (assuming your request pipeline handles authentication)
+            user = request.user
+            
+            # 4. Create and save the new Product instance
+            new_product = Product(
+                name=name,
+                price=price,
+                description=description,
+                category=category,
+                thumbnail=thumbnail,
+                is_featured=is_featured,
+                brand=brand,
+                weight=weight,
+                user=user # Assuming your Product model has a ForeignKey to User
+                # Note: 'id', 'productViews', 'createdAt', 'rating', 'userUsername' are usually handled automatically or on the server side
+            )
+            new_product.save()
+            
+            return JsonResponse({"status": "success", "product_id": new_product.id}, status=201) # Use 201 for resource creation
+            
+        except json.JSONDecodeError:
+            return JsonResponse({"status": "error", "message": "Invalid JSON format."}, status=400)
+        except Exception as e:
+            # Handle other potential errors (e.g., database errors, type mismatches)
+            return JsonResponse({"status": "error", "message": f"An error occurred: {e}"}, status=500)
+            
+    # Handle non-POST requests
+    return JsonResponse({"status": "error", "message": "Method not allowed."}, status=405)
+
 @login_required(login_url='/login')
 def show_main(request):
     filter_type = request.GET.get("filter", "all")  # default 'all'
