@@ -1,13 +1,19 @@
 from django.shortcuts import render
 from django.contrib.auth import authenticate, login as auth_login
+from django.contrib.auth.decorators import login_required
 # Add on
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from django.contrib.auth.models import User
 import json
 from django.contrib.auth import logout as auth_logout
-from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse
+
+@login_required(login_url='/auth/login')
+def get_user(request):
+    return JsonResponse({
+        "username": request.user.username,
+        "status": True,
+    }, status=200)
 
 @csrf_exempt
 def logout(request):
